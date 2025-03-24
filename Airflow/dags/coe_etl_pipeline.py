@@ -10,10 +10,13 @@ GCP_PROJECT_ID = 'is3107-453814'
 BQ_DATASET_ID = 'car_dataset'
 BQ_TABLE_ID = 'coe_bidding_results'
 BUCKET_NAME = 'is3107-bucket'
+
+# ----------------------------- COE -----------------------------
 RESOURCE_ID = 'd_69b3380ad7e51aff3a7dcc84eba52b8a'
 BASE_URL = 'https://data.gov.sg/api/action/datastore_search'
 LIMIT = 100
 
+# ----------------------------- DAG -----------------------------
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -27,7 +30,6 @@ default_args = {
     tags=['bigquery', 'gcs', 'etl']
 )
 def coe_etl_pipeline():
-
     @task
     def get_latest_offset():
         """Check BigQuery for the latest record ID to determine offset, 
@@ -67,6 +69,7 @@ def coe_etl_pipeline():
         if latest_id is None:
             return 0  # Table is empty, start from 0
         return latest_id + 1
+
     @task()
     def extract_data(offset):
         """Extract records from API using dynamic offset."""
