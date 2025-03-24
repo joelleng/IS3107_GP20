@@ -1,4 +1,5 @@
-FROM apache/airflow:2.10.5
+# AMD64 architecture so that it can install Google Chrome
+FROM --platform=linux/amd64 apache/airflow:2.10.5 
 
 ADD IS3107_Requirements.txt .
 
