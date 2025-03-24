@@ -173,9 +173,3 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
-# Airflow logs and database files
-**/logs/**
-.DS_Store
-**/.DS_Store
-**/gcp-key.json
