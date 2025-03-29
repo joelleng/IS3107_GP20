@@ -154,7 +154,7 @@ def sgcarmart_dag():
 
             for vehicle_link, posted_date in listings.items():
                 posted_date = datetime.strptime(posted_date, "%d-%b-%Y").date() 
-                
+
                 if posted_date > cutoff_date:
                     filtered_listings[base_url].append(vehicle_link)
 
@@ -173,15 +173,17 @@ def sgcarmart_dag():
             os.makedirs(output_dir, exist_ok=True)
 
             file = os.path.join(output_dir, f"vehicle_details_{brsr}_{timestamp}.csv")
-            df = pd.DataFrame(columns=['listing_url', 'car_model','brand', 'color', 'fuel_type', 'price',
+            df = pd.DataFrame(columns=['used_car_id', 'listing_url', 'car_model','brand', 'color', 'fuel_type', 'price',
                            'depreciation_per_year', 'registration_date', 'coe_left', 'mileage', 'manufactured_year',
                            'road_tax_per_year', 'transmission', 'dereg_value', 'omv', 'coe_value', 'arf',
-                            'engine_capacity_cc', 'power', 'curb_weight', 'no_of_owners', 'vehicle_type', 'date_posted', 'last_updated'])
+                            'engine_capacity_cc', 'power', 'curb_weight', 'no_of_owners', 'vehicle_type', 
+                            'scraped_datetime', 'posted_datetime', 'updated,datetime', 'active'])
             i = 0 
 
             for listingurl in vehicle_links:
-                print(listingurl)
                 # listingurl='https://www.sgcarmart.com/used_cars/info.php?ID=1366938&DL=4573&GASRC=dy'
+                car_id = listingurl.split("ID=")[1].split("&")[0]
+
                 response = requests.get(listingurl)
                 listing_url = BeautifulSoup(response.text, 'lxml')
                 soup = BeautifulSoup(response.text, "html.parser")
@@ -221,6 +223,8 @@ def sgcarmart_dag():
                 date_posted = safe_extract(get_posted_date, soup)
                 last_updated = safe_extract(get_last_updated_date, soup)
 
+                print(f"Used Car ID: {car_id}")
+                print(f'Listing URL: {listingurl}')
                 print(f"Car Model: {car_model}")
                 print(f"Brand: {brand_name}")
                 print(f"Color: {color}")
@@ -245,30 +249,52 @@ def sgcarmart_dag():
                 print(f"Date Posted: {date_posted}")
                 print(f"Last Updated: {last_updated}")
 
-                df.loc[i, 'listing_url'] = listingurl
-                df.loc[i, 'car_model'] = car_model
-                df.loc[i, 'brand'] = brand_name
-                df.loc[i, 'color'] = color
-                df.loc[i, 'fuel_type'] = fuel_type
-                df.loc[i, 'price'] = price
-                df.loc[i, 'depreciation_per_year'] = depreciation
-                df.loc[i, 'registration_date'] = reg_date
-                df.loc[i, 'coe_left'] = coe_remaining
-                df.loc[i, 'mileage'] = mileage
-                df.loc[i, 'manufactured_year'] = manu_year
-                df.loc[i, 'road_tax_per_year'] = road_tax
-                df.loc[i, 'transmission'] = transmission
-                df.loc[i, 'dereg_value'] = dereg_value
-                df.loc[i, 'omv'] = omv
-                df.loc[i, 'coe_value'] = coe_value
-                df.loc[i, 'arf'] = arf
-                df.loc[i, 'engine_capacity_cc'] = engine_capacity
-                df.loc[i, 'power'] = power
-                df.loc[i, 'curb_weight'] = curb_weight
-                df.loc[i, 'no_of_owners'] = no_of_owners
-                df.loc[i, 'vehicle_type'] = vehicle_type
-                df.loc[i, 'date_posted'] = date_posted
-                df.loc[i, 'last_updated'] = last_updated
+                df.loc[i, 'used_car_id'] = car_id # INTEGER
+                df.loc[i, 'listing_url'] = listingurl # STRING
+                df.loc[i, 'car_model'] = car_model # STRING
+                df.loc[i, 'brand'] = brand_name # STRING
+                df.loc[i, 'color'] = color # STRING
+                df.loc[i, 'fuel_type'] = fuel_type # STRING
+                df.loc[i, 'price'] = price # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'depreciation_per_year'] = depreciation # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'registration_date'] = datetime.strptime(reg_date, "%d-%b-%Y").date() # DATE
+                df.loc[i, 'coe_left'] = coe_remaining # INTEGER
+                df.loc[i, 'mileage'] = mileage # INTEGER
+                df.loc[i, 'manufactured_year'] = manu_year # INTEGER
+                df.loc[i, 'road_tax_per_year'] = road_tax # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'transmission'] = transmission # STRING
+                df.loc[i, 'dereg_value'] = dereg_value # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'omv'] = omv # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'coe_value'] = coe_value # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'arf'] = arf # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'engine_capacity_cc'] = engine_capacity # INTEGER
+                df.loc[i, 'power'] = power # INTEGER
+                df.loc[i, 'curb_weight'] = curb_weight # INTEGER
+                df.loc[i, 'no_of_owners'] = no_of_owners # INTEGER
+                df.loc[i, 'vehicle_type'] = vehicle_type # STRING
+                df.loc[i, 'scraped_datetime'] = datetime.now().date() # DATE
+                df.loc[i, 'posted_datetime'] = datetime.strptime(date_posted, "%d-%b-%Y").date() # DATE
+                df.loc[i, 'updated_datetime'] = datetime.strptime(last_updated, "%d-%b-%Y").date() # DATE
+                df.loc[i, 'active'] = True
+
+                # Convert the following columns to INTEGER type for BigQuery
+                df['car_id'].astype("Int64")
+                df['coe_left'].astype("Int64")
+                df['mileage'].astype("Int64")
+                df['manufactured_year'].astype("Int64")
+                df['engine_capacity_cc'].astype("Int64")
+                df['power'].astype("Int64")
+                df['curb_weight'].astype("Int64")
+                df['no_of_owners'].astype("Int64")
+
+                # Convert the following columns to FLOAT type for BigQuery
+                df['price'].astype("float")
+                df['depreciation_per_year'].astype("float")
+                df['road_tax_per_year'].astype("float")
+                df['dereg_value'].astype("float")
+                df['omv'].astype("float")
+                df['coe_value'].astype("float")
+                df['arf'].astype("float")
 
                 df.to_csv(file, index=False)
                 i += 1 # Allows next car listing to be put into a next row in the dataframe
