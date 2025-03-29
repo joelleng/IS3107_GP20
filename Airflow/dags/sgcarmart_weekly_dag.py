@@ -26,6 +26,21 @@ from utils.vehicle_details_helper import (
     get_number_of_owners_soup, get_type_of_vehicle, get_type_of_vehicle_html,
     get_posted_date, get_last_updated_date, safe_extract)
 
+from google.cloud import bigquery
+
+# ----------------------------- Google Cloud -----------------------------
+GCP_PROJECT_ID = 'is3107-453814'
+BQ_DATASET_ID = 'car_dataset'
+BQ_TABLE_ID = 'used_car'
+BUCKET_NAME = 'is3107-bucket'
+
+# ----------------------------- USED CAR API -----------------------------
+RESOURCE_ID = 'd_69b3380ad7e51aff3a7dcc84eba52b8a'
+BASE_URL = 'https://data.gov.sg/api/action/datastore_search'
+LIMIT = 100
+
+# ----------------------------- DAG -----------------------------
+
 # Default Args for DAG
 default_args = {
     "owner": "Leng Jin De Joel",
@@ -119,7 +134,19 @@ def sgcarmart_dag():
             Returns:
                 - filtered_listings : dict
         """
-        cutoff_date = datetime.strptime("2025-03-01", "%Y-%m-%d") # Replace with database query for latest date available
+        client = bigquery.Client()
+        table_id = f"{GCP_PROJECT_ID}.{BQ_DATASET_ID}.{BQ_TABLE_ID}"
+
+        query = f"SELECT MAX(posted_datetime) AS latest_posted_date FROM `{table_id}`"
+        query_job = client.query(query)
+        result = query_job.result()
+        latest_posted_date = next(result, None) 
+
+        if latest_posted_date and latest_posted_date.latest_posted_date:
+            cutoff_date = latest_posted_date.latest_posted_date
+        else:
+            cutoff_date = datetime(2000, 1, 1).date() # Default to a very old date if no data is found
+        # cutoff_date = datetime.strptime("2025-03-01", "%Y-%m-%d") # Replace with database query for latest date available
         filtered_listings = {}
 
         for base_url, listings in base_url_dict.items():
