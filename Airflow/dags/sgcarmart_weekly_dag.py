@@ -153,7 +153,8 @@ def sgcarmart_dag():
             filtered_listings[base_url] = []
 
             for vehicle_link, posted_date in listings.items():
-                posted_date = datetime.strptime(posted_date, "%d-%b-%Y")
+                posted_date = datetime.strptime(posted_date, "%d-%b-%Y").date() 
+                
                 if posted_date > cutoff_date:
                     filtered_listings[base_url].append(vehicle_link)
 
