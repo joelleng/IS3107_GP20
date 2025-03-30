@@ -198,7 +198,7 @@ def sgcarmart_dag():
                         json_text = script_tag.string.strip()
                         json_data = json.loads(json_text)
                     except json.JSONDecodeError:
-                        pass  # If it can't decode, leave json_data as NaN
+                        pass 
 
                 # If no @context script tag is found, check for window._loopaData as fallback
                 if json_data is np.nan:
@@ -209,7 +209,7 @@ def sgcarmart_dag():
                             json_text = script_tag.string.split('window._loopaData = ')[1].split(';')[0]
                             json_data = json.loads(json_text)
                         except json.JSONDecodeError:
-                            pass  # If it can't decode, leave json_data as NaN
+                            pass
 
                 # Extract details using JSON if available; otherwise, fallback to HTML parsing
                 car_model = safe_extract(get_car_model, json_data)
