@@ -14,7 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from utils.vehicle_details_helper import (
-    string_extraction, get_car_model, get_car_brand, get_car_color,
+    get_car_model, get_car_model_html, get_car_brand, get_car_color,
     get_fuel_type, get_price, get_price_html, get_depreciation,
     get_depreciation_soup, get_reg_date, get_mileage, get_mileage_html,
     get_manufactured_year, get_manufactured_year_soup, helper_coe_clean,
@@ -213,7 +213,7 @@ def sgcarmart_dag():
                             pass
 
                 # Extract details using JSON if available; otherwise, fallback to HTML parsing
-                car_model = safe_extract(get_car_model, json_data)
+                car_model = safe_extract(get_car_model, json_data) or safe_extract(get_car_model_html, listing_url)
                 brand_name = safe_extract(get_car_brand, json_data) or json_data.get('make')
                 color = safe_extract(get_car_color, json_data)
                 fuel_type = safe_extract(get_fuel_type, json_data)

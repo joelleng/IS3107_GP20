@@ -18,6 +18,16 @@ def get_car_model(json_data):
     car_name = json_data.get("model")
     return car_name
 
+def get_car_model_html(url):
+    """
+    Car model data is obtainable from the HTML, this method retrieves car model from HTML
+    """
+    try:
+        car_model = url.find('a', class_='nounderline globaltitle').text.split("(")[0].strip()
+        return car_model
+    except AttributeError:
+        return None  # Return None if extraction fails
+
 def get_car_brand(json_data):
     """
     Car Brand data is not automatically displayed on the HTML of the website, 
