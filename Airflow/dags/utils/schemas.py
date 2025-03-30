@@ -32,7 +32,6 @@ TABLE_SCHEMAS = {
     
     "car_dataset.used_car": [
         {"name": "used_car_id", "type": "INT64", "mode": "REQUIRED"},
-        {"name": "external_id", "type": "STRING", "mode": "NULLABLE"},
         {"name": "listing_url", "type": "STRING", "mode": "NULLABLE"},
         {"name": "car_model", "type": "STRING", "mode": "NULLABLE"},
         {"name": "brand", "type": "STRING", "mode": "NULLABLE"},
@@ -41,7 +40,7 @@ TABLE_SCHEMAS = {
         {"name": "price", "type": "NUMERIC", "mode": "NULLABLE"},
         {"name": "depreciation_per_year", "type": "NUMERIC", "mode": "NULLABLE"},
         {"name": "registration_date", "type": "DATE", "mode": "NULLABLE"},
-        {"name": "coe_left", "type": "STRING", "mode": "NULLABLE"},
+        {"name": "coe_left", "type": "INT64", "mode": "NULLABLE"},
         {"name": "mileage", "type": "INT64", "mode": "NULLABLE"},
         {"name": "manufactured_year", "type": "INT64", "mode": "NULLABLE"},
         {"name": "road_tax_per_year", "type": "NUMERIC", "mode": "NULLABLE"},
@@ -56,8 +55,8 @@ TABLE_SCHEMAS = {
         {"name": "no_of_owners", "type": "INT64", "mode": "NULLABLE"},
         {"name": "vehicle_type", "type": "STRING", "mode": "NULLABLE"},
         {"name": "scraped_datetime", "type": "DATETIME", "mode": "NULLABLE"},
-        {"name": "posted_datetime", "type": "DATETIME", "mode": "NULLABLE"},
-        {"name": "updated_datetime", "type": "DATETIME", "mode": "NULLABLE"},
+        {"name": "posted_datetime", "type": "DATE", "mode": "NULLABLE"},
+        {"name": "updated_datetime", "type": "DATE", "mode": "NULLABLE"},
         {"name": "active", "type": "BOOLEAN", "mode": "NULLABLE"},
     ],
 
