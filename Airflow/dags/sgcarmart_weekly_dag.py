@@ -78,8 +78,9 @@ def sgcarmart_dag():
 
         try:
             main_page_listing_list = [] # creating list to store search pages of 100 car listings
-            for i in (range(1)):
+            for i in (range(30)):
                 url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=" + str(i * 100) + "&RPG=100"
+                # url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=100&RPG=100"
                 # url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=" + str(i * 10) + "&RPG=5"
                 main_page_listing_list.append(url)
             print(f"Listing list: {main_page_listing_list}")
