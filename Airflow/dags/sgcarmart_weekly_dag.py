@@ -143,6 +143,7 @@ def sgcarmart_dag():
 
         if latest_posted_date and latest_posted_date.latest_posted_date:
             cutoff_date = latest_posted_date.latest_posted_date
+            print(f'Latest posted date from BigQuery: {cutoff_date}')
         else:
             cutoff_date = datetime(2000, 1, 1).date() # Default to a very old date if no data is found
         # cutoff_date = datetime.strptime("2025-03-01", "%Y-%m-%d") # Replace with database query for latest date available
@@ -154,7 +155,6 @@ def sgcarmart_dag():
 
             for vehicle_link, posted_date in listings.items():
                 posted_date = datetime.strptime(posted_date, "%d-%b-%Y").date() 
-
                 if posted_date > cutoff_date:
                     filtered_listings[base_url].append(vehicle_link)
 

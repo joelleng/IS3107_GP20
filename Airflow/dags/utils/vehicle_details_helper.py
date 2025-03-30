@@ -47,8 +47,12 @@ def get_fuel_type(json_data):
     hence we have find this from the <script> tag as @context 
     This function utilises information from the <script> tag and in json format data.
     """
-    fuel_type = json_data.get("vehicleEngine")['fuelType']
-    return fuel_type
+    try:
+        fuel_type = json_data.get("vehicleEngine")['fuelType']
+        return fuel_type
+    except KeyError:
+        # In case of missing keys, return None (this will trigger the fallback)
+        return None
 
 def get_price(json_data):
     """
