@@ -25,7 +25,7 @@ from utils.vehicle_details_helper import (
     get_curb_weight, get_curb_weight_soup, get_number_of_owners,
     get_number_of_owners_soup, get_type_of_vehicle, get_type_of_vehicle_html,
     get_posted_date, get_last_updated_date, safe_extract)
-
+from utils import google_cloud
 from google.cloud import bigquery
 
 # ----------------------------- Google Cloud -----------------------------
@@ -33,11 +33,6 @@ GCP_PROJECT_ID = 'is3107-453814'
 BQ_DATASET_ID = 'car_dataset'
 BQ_TABLE_ID = 'used_car'
 BUCKET_NAME = 'is3107-bucket'
-
-# ----------------------------- USED CAR API -----------------------------
-RESOURCE_ID = 'd_69b3380ad7e51aff3a7dcc84eba52b8a'
-BASE_URL = 'https://data.gov.sg/api/action/datastore_search'
-LIMIT = 100
 
 # ----------------------------- DAG -----------------------------
 
@@ -85,6 +80,7 @@ def sgcarmart_dag():
             main_page_listing_list = [] # creating list to store search pages of 100 car listings
             for i in (range(1)):
                 url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=" + str(i * 100) + "&RPG=100"
+                # url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=" + str(i * 10) + "&RPG=5"
                 main_page_listing_list.append(url)
             print(f"Listing list: {main_page_listing_list}")
             # Set up Selenium WebDriver
@@ -150,6 +146,7 @@ def sgcarmart_dag():
         filtered_listings = {}
 
         for base_url, listings in base_url_dict.items():
+            print(base_url)
             filtered_listings[base_url] = []
 
             for vehicle_link, posted_date in listings.items():
@@ -173,11 +170,12 @@ def sgcarmart_dag():
             os.makedirs(output_dir, exist_ok=True)
 
             file = os.path.join(output_dir, f"vehicle_details_{brsr}_{timestamp}.csv")
+            
             df = pd.DataFrame(columns=['used_car_id', 'listing_url', 'car_model','brand', 'color', 'fuel_type', 'price',
                            'depreciation_per_year', 'registration_date', 'coe_left', 'mileage', 'manufactured_year',
                            'road_tax_per_year', 'transmission', 'dereg_value', 'omv', 'coe_value', 'arf',
                             'engine_capacity_cc', 'power', 'curb_weight', 'no_of_owners', 'vehicle_type', 
-                            'scraped_datetime', 'posted_datetime', 'updated,datetime', 'active'])
+                            'scraped_datetime', 'posted_datetime', 'updated_datetime', 'active'])
             i = 0 
 
             for listingurl in vehicle_links:
@@ -272,33 +270,15 @@ def sgcarmart_dag():
                 df.loc[i, 'curb_weight'] = curb_weight # INTEGER
                 df.loc[i, 'no_of_owners'] = no_of_owners # INTEGER
                 df.loc[i, 'vehicle_type'] = vehicle_type # STRING
-                df.loc[i, 'scraped_datetime'] = datetime.now().date() # DATE
+                df.loc[i, 'scraped_datetime'] = datetime.now() # DATETIME
                 df.loc[i, 'posted_datetime'] = datetime.strptime(date_posted, "%d-%b-%Y").date() # DATE
                 df.loc[i, 'updated_datetime'] = datetime.strptime(last_updated, "%d-%b-%Y").date() # DATE
                 df.loc[i, 'active'] = True
 
-                # Convert the following columns to INTEGER type for BigQuery
-                df['car_id'].astype("Int64")
-                df['coe_left'].astype("Int64")
-                df['mileage'].astype("Int64")
-                df['manufactured_year'].astype("Int64")
-                df['engine_capacity_cc'].astype("Int64")
-                df['power'].astype("Int64")
-                df['curb_weight'].astype("Int64")
-                df['no_of_owners'].astype("Int64")
-
-                # Convert the following columns to FLOAT type for BigQuery
-                df['price'].astype("float")
-                df['depreciation_per_year'].astype("float")
-                df['road_tax_per_year'].astype("float")
-                df['dereg_value'].astype("float")
-                df['omv'].astype("float")
-                df['coe_value'].astype("float")
-                df['arf'].astype("float")
-
-                df.to_csv(file, index=False)
                 i += 1 # Allows next car listing to be put into a next row in the dataframe
                 time.sleep(2)  # Prevents us from getting locked out of the website
+
+            df.to_csv(file, index=False)
 
             return {f"{base_url}_CSV_FILEPATH": file}
         except Exception as e:
@@ -317,10 +297,49 @@ def sgcarmart_dag():
             for file_path_dict in file_path_dicts:
                 for key, file_path in file_path_dict.items():
                     print(f"Ingesting file: {file_path} from {key}")
-                # Ingestion code here
+
+                    # Read the CSV file
+                    df = pd.read_csv(file_path)
+
+                    # Convert only in this task because we re-read the CSV file
+                    # Convert the following columns to INTEGER type for BigQuery
+                    columns_to_convert = ['used_car_id', 'coe_left', 'mileage', 
+                                          'manufactured_year', 'engine_capacity_cc', 
+                                          'power', 'curb_weight', 'no_of_owners']
+                    for col in columns_to_convert:
+                        df[col] = np.floor(pd.to_numeric(df[col], errors='coerce')).astype("Int64")
+
+
+                    # Convert the following columns to FLOAT type for BigQuery
+                    df['price'] = df['price'].astype("float")
+                    df['depreciation_per_year'] = df['depreciation_per_year'].astype("float")
+                    df['road_tax_per_year'] = df['road_tax_per_year'].astype("float")
+                    df['dereg_value'] = df['dereg_value'].astype("float")
+                    df['omv'] = df['omv'].astype("float")
+                    df['coe_value'] = df['coe_value'].astype("float")
+                    df['arf'] = df['arf'].astype("float")
+
+                    # Convert the following columns to DATE type for BigQuery
+                    df['registration_date'] = pd.to_datetime(df['registration_date'], format="%Y-%m-%d").dt.date
+                    df['posted_datetime'] = pd.to_datetime(df['posted_datetime'], format="%Y-%m-%d").dt.date
+                    df['updated_datetime'] = pd.to_datetime(df['updated_datetime'], format="%Y-%m-%d").dt.date
+                    df['scraped_datetime'] = pd.to_datetime(df['scraped_datetime'], format="%Y-%m-%d %H:%M:%S.%f")
+
+                    # Check the type of each column
+                    print(df.dtypes)
+                    # Check the type of each cell in the first row
+                    print(df.iloc[0].apply(type))
+
+                    """Uploads DataFrame to GCS via google_cloud.py"""
+                    df_gcs_uri = google_cloud.upload_to_gcs(df, bucket_name=BUCKET_NAME, prefix=BQ_TABLE_ID)
+
+                    """Loads GCS data into BigQuery via google_cloud.py"""
+                    google_cloud.load_to_bigquery(df_gcs_uri, GCP_PROJECT_ID, BQ_DATASET_ID, BQ_TABLE_ID)
+                    
             return True
         except Exception as e:
             raise RuntimeError(f"Error: {str(e)}")
+
 
     # DAG Node order
     base_url_dict = get_sgcarmart_data()
