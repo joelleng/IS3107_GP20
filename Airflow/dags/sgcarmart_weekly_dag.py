@@ -86,6 +86,7 @@ def sgcarmart_dag():
             # Set up Selenium WebDriver
             options = webdriver.ChromeOptions()
             options.add_argument("--headless")  # Run in headless mode for faster execution
+            options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
 
@@ -98,6 +99,8 @@ def sgcarmart_dag():
                 time.sleep(5)  # Wait for JavaScript to load
 
                 soup = BeautifulSoup(driver.page_source, 'lxml')
+
+                time.sleep(5)
 
                 links = soup.find_all('a', class_='styles_text_link__wBaHL') # Obtaining all vehicle links in the page
                 posted_date_div = soup.find_all("div", class_="styles_posted_date__ObxTu") # Obtain the posted date of the vehicle listing
@@ -189,16 +192,28 @@ def sgcarmart_dag():
                 script_tag = soup.find("script", string=re.compile(r'@context'))
                 json_data = np.nan
 
+                # If script_tag with @context is found, parse its content
                 if script_tag:
                     try:
                         json_text = script_tag.string.strip()
                         json_data = json.loads(json_text)
                     except json.JSONDecodeError:
-                        pass
+                        pass  # If it can't decode, leave json_data as NaN
+
+                # If no @context script tag is found, check for window._loopaData as fallback
+                if json_data is np.nan:
+                    script_tag = soup.find("script", text=lambda t: t and 'window._loopaData' in t)
+                    if script_tag:
+                        try:
+                            # Extract the JSON from the window._loopaData assignment
+                            json_text = script_tag.string.split('window._loopaData = ')[1].split(';')[0]
+                            json_data = json.loads(json_text)
+                        except json.JSONDecodeError:
+                            pass  # If it can't decode, leave json_data as NaN
 
                 # Extract details using JSON if available; otherwise, fallback to HTML parsing
                 car_model = safe_extract(get_car_model, json_data)
-                brand_name = safe_extract(get_car_brand, json_data)
+                brand_name = safe_extract(get_car_brand, json_data) or json_data.get('make')
                 color = safe_extract(get_car_color, json_data)
                 fuel_type = safe_extract(get_fuel_type, json_data)
                 price = safe_extract(get_price, json_data) or safe_extract(get_price_html, listing_url)
