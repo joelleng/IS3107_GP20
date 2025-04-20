@@ -64,3 +64,5 @@ pymysql==1.1.1
 mysql-connector-python==9.2.0
 absl-py==2.2.0
 db-dtypes==1.4.2
+google-cloud-aiplatform
+kfp
