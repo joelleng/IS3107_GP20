@@ -1,7 +1,6 @@
 asttokens==3.0.0
 attrs==25.3.0
-beautifulsoup4==4.13.3
-bs4==0.0.2
+beautifulsoup4==4.13.3  # No need for bs4 as it's part of beautifulsoup4
 certifi==2025.1.31
 cffi==1.17.1
 charset-normalizer==3.4.1
@@ -21,10 +20,8 @@ jupyter_core==5.7.2
 lxml==5.3.1
 matplotlib-inline==0.1.7
 nest-asyncio==1.6.0
-numpy==2.2.4
 outcome==1.3.0.post0
 packaging==24.2
-pandas==2.2.3
 parso==0.8.4
 platformdirs==4.3.7
 prompt_toolkit==3.0.50
@@ -36,7 +33,6 @@ PySocks==1.7.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 pytz==2025.1
-pywin32==310; platform_system=="Windows" # Only for Windows, not for Docker Compose
 pyzmq==26.3.0
 requests==2.32.3
 selenium==4.30.0
@@ -56,11 +52,16 @@ wcwidth==0.2.13
 webdriver-manager==4.0.2
 websocket-client==1.8.0
 wsproto==1.2.0
-google-cloud-bigquery==3.30.0
-google-cloud-storage==3.1.0
 google-cloud-bigquery-storage==2.29.1
 matplotlib==3.10.1
 pymysql==1.1.1
 mysql-connector-python==9.2.0
 absl-py==2.2.0
 db-dtypes==1.4.2
+apache-airflow-providers-google
+numpy==1.26.4
+pandas==2.1.3
+google-cloud-bigquery==3.20.0
+google-cloud-storage==2.9.0
+# Windows-specific dependency (for Windows only, not for Docker Compose):
+pywin32==310; platform_system=="Windows"
