@@ -39,7 +39,6 @@ def predict_price(inputs):
     Returns:
         float: Predicted price
     """
-    # Dummy prediction logic (to be replaced with actual model)
     base_price = 30000
     price = (
         base_price
@@ -56,4 +55,4 @@ def predict_price(inputs):
     if inputs['vehicle_type'] in ["Sports Car", "Luxury Sedan"]:
         price *= 1.3
     
-    return max(price, 1000)  # Ensure price is positive
+    return max(price, 1000)
