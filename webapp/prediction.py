@@ -39,6 +39,7 @@ def predict_price(inputs):
     Returns:
         float: Predicted price
     """
+    # API call from vertex
     base_price = 30000
     price = (
         base_price
