@@ -18,8 +18,6 @@ def train_model_direct(model_path: Output[Model]):
     from sentence_transformers import SentenceTransformer
     from sklearn.decomposition import PCA
 
-
-
     GCP_PROJECT_ID = 'is3107-453814'
     BQ_DATASET_ID = 'car_dataset'
     BQ_TABLE_ID = 'used_car'
@@ -173,7 +171,7 @@ def train_model_direct(model_path: Output[Model]):
     pca_7 = PCA(n_components=7)
     pca_7_components = pca_7.fit_transform(scaled_data)
 
-    ### Save PCA components to Bucket
+    ### Save PCA components to Bucket -- doesnt matter the file name as it will be overwritten -> we can hence call from a consistent file_name in the prediction pipeline
     save_to_gcs(BUCKET_NAME, 'latest_pca.pkl', pca_7)
 
     pca_7_df = pd.DataFrame(pca_7_components, columns=[f'PC{i+1}' for i in range(7)], index=final_df.index)
