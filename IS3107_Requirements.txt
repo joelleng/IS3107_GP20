@@ -66,3 +66,4 @@ absl-py==2.2.0
 db-dtypes==1.4.2
 google-cloud-aiplatform==1.90.0
 kfp==2.12.1 # lower version for compatibility
+xgboost

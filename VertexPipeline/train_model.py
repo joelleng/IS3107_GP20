@@ -7,10 +7,10 @@ from kfp.dsl import component, Output, Model
 def train_model_direct(
     model_path: Output[Model]
 ):
-    """Loads feature-engineered table from BigQuery, fits RandomForest, uploads model."""
+    """Loads feature-engineered table from BigQuery, trains with XGBoost, uploads model."""
     import pandas as pd
     from joblib import dump
-    from sklearn.ensemble import RandomForestRegressor
+    from xgboost import XGBRegressor
     from google.cloud import bigquery, storage
 
 
@@ -27,8 +27,21 @@ def train_model_direct(
     X = df.drop(columns=['price'])
     y = df['price']
 
-    model = RandomForestRegressor()
+
+    model = XGBRegressor(
+        objective='reg:squarederror',
+        subsample=0.6,
+        reg_lambda=2,
+        reg_alpha=1,
+        n_estimators=300,
+        max_depth=7,
+        learning_rate=0.1,
+        colsample_bytree=0.8,
+        random_state=42,
+        n_jobs=-1
+    )
     model.fit(X, y)
+
 
     # 1) dump locally
     dump(model, model_path.path + ".joblib")
