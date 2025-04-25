@@ -1,7 +1,7 @@
 from kfp.dsl import component, Input, Output, Model, Metrics
 
 @component(
-    packages_to_install=["pandas","google-cloud-bigquery","scikit-learn","joblib","db-dtypes", "google-cloud-storage"],
+    packages_to_install=["pandas","google-cloud-bigquery","scikit-learn","joblib","db-dtypes", "google-cloud-storage", "xgboost"],
     base_image="python:3.9"
 )
 def evaluate_model_direct(
