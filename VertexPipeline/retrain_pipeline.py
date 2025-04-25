@@ -1,40 +1,49 @@
 import os
-from google.cloud import aiplatform
 from kfp import compiler
 from kfp.dsl import pipeline
+from google.cloud import aiplatform
 
+from data_processing import data_processing_direct
 from train_model import train_model_direct
 from evaluate_model import evaluate_model_direct
 
-# Force UTF-8 to avoid UnicodeEncodeError
+# UTF-8 to avoid issues
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
-# Vertex AI project config
+# Vertex AI init
 aiplatform.init(
     project="is3107-453814",
     location="us-central1"
 )
 
-# Define the actual pipeline
 @pipeline(
-    name="car_price_retrain_direct",
+    name="car_price_retrain",
     pipeline_root="gs://is3107-car-data/pipeline-artifacts"
 )
-def retrain_pipeline_direct():
-    train = train_model_direct()
-    evaluate_model_direct(model_path=train.outputs["model_path"])
+def retrain_pipeline():
+    # 1. Data processing
+    processing = data_processing_direct()
 
-# Compile and Run
+    # 2. Train model
+    train = train_model_direct().after(processing)
+
+    # 3. Evaluate model
+    evaluate_model_direct(
+        model_path=train.outputs['model_path']
+    ).after(train)
+
 if __name__ == "__main__":
     compiler.Compiler().compile(
-        pipeline_func=retrain_pipeline_direct,
-        package_path="retrain_pipeline.json",
+        pipeline_func=retrain_pipeline,
+        package_path="retrain_pipeline.json"
     )
 
     job = aiplatform.PipelineJob(
         display_name="car_price_pipeline",
         template_path="retrain_pipeline.json",
-        pipeline_root="gs://is3107-car-data/pipeline-artifacts"
+        pipeline_root="gs://is3107-bucket/mlops"
     )
 
-    job.run()
+    job.run(
+        service_account="airflow-service-account@is3107-453814.iam.gserviceaccount.com"
+    )

@@ -179,6 +179,8 @@ cython_debug/
 .DS_Store
 **/.DS_Store
 **/gcp-key.json
+**/sa.json
+
 
 # Ignore downloaded GCloud SDK
 VertexPipeline/google-cloud-sdk/
