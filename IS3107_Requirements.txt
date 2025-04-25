@@ -34,9 +34,6 @@ grpcio-status==1.71.0
 h11==0.14.0
 huggingface-hub==0.30.2
 idna==3.10
-ipykernel==6.29.5
-ipython==9.0.2
-ipython_pygments_lexers==1.1.1
 jedi==0.19.2
 Jinja2==3.1.6
 joblib==1.4.2
