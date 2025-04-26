@@ -40,7 +40,7 @@
       }
     }
   },
-  "defaultPipelineRoot": "gs://is3107-car-data/pipeline-artifacts",
+  "defaultPipelineRoot": "gs://is3107-bucket/mlops/pipeline-artifacts",
   "deploymentSpec": {
     "executors": {
       "exec-data-processing-direct": {
