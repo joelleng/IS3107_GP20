@@ -23,26 +23,6 @@ body { background-color: white; }
 """, unsafe_allow_html=True)
 
 @st.cache_data
-# def load_data(path='processed_used_cars.csv'):
-#     try:
-#         df = pd.read_csv(path)
-#         df = revert_one_hot_encoded_columns(df)
-#         numeric_cols = ['price','depreciation_per_year','coe_left','mileage','manufactured_year',
-#                         'road_tax_per_year','dereg_value','omv','coe_value','arf',
-#                         'engine_capacity_cc','power','curb_weight','no_of_owners','car_age','days_on_market']
-#         for col in numeric_cols:
-#             if col in df: df[col] = pd.to_numeric(df[col], errors='coerce')
-#         object_cols = ['brand','color','fuel_type','transmission','vehicle_type']
-#         for col in object_cols:
-#             if col in df: df[col] = df[col].astype(str).fillna('Unknown')
-#         return df
-#     except FileNotFoundError:
-#         st.error(f"Error: Data file not found at '{path}'")
-#         return None
-#     except Exception as e:
-#         st.error(f"Error during loading: {e}")
-#         return None
-
 def load_data():
     try:
 

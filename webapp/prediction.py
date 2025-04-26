@@ -13,19 +13,44 @@ def get_prediction_inputs():
     st.markdown("### Car Basic Information")
     col1, col2 = st.columns(2)
     with col1:
-        inputs['car_model'] = st.text_input("Car Model", value="Civic Hybrid")
-        inputs['brand'] = st.selectbox("Brand", ["Honda", "Toyota", "BMW", "Mercedes Benz", "Audi", "Porsche", "Other"])
-        inputs['color'] = st.selectbox("Color", ["Black", "White", "Silver", "Red", "Blue", "Grey", "Other"])
-        inputs['fuel_type'] = st.selectbox("Fuel Type", ["Petrol", "Diesel", "Hybrid", "Electric"])
-        inputs['transmission'] = st.selectbox("Transmission", ["Automatic", "Manual"])
-        inputs['vehicle_type'] = st.selectbox("Vehicle Type", ["Passenger", "SUV", "Luxury Sedan", "Mid-Sized Sedan", "MPV", "Stationwagon", "Others"])
+        inputs['car_model'] = st.text_input("Car Model", value="Alfa Romeo Giulia 2.0A Veloce")
+        inputs['brand'] = st.selectbox("Brand", 
+                                       ['Alfa', 'Alpine', 'Armstrong', 'Aston', 'Audi', 'Austin', 'BMW', 'BYD',
+                                        'Bentley', 'CUPRA', 'Cadillac', 'Chery', 'Chevrolet', 'Citroen', 'DFSK',
+                                        'Daihatsu', 'Datsun', 'Ferrari', 'Fiat', 'Ford', 'Foton', 'Golden', 'Hino',
+                                        'Honda', 'Hummer', 'Hyundai', 'Infiniti', 'International', 'Isuzu', 'Jaguar',
+                                        'Jeep', 'Kia', 'King', 'Lamborghini', 'Land', 'Lexus', 'Lotus', 'MAN', 'MG',
+                                        'MINI', 'Maserati', 'Mazda', 'McLaren', 'Mercedes-Benz', 'Mitsubishi',
+                                        'Mitsuoka', 'Morgan', 'Morris', 'Nissan', 'Opel', 'Peugeot', 'Porsche',
+                                        'Proton', 'Renault', 'Rolls-Royce', 'SC', 'SEAT', 'Scania', 'Shineray',
+                                        'Skoda', 'Ssangyong', 'Subaru', 'Suzuki', 'Tesla', 'Toyota', 'Triumph', 'UD',
+                                        'Volkswagen', 'Volvo', 'Yutong', 'oyota', 'MORRIS', 'M.G.', 'MERCEDES BENZ',
+                                        'AUSTIN', 'VOLKSWAGEN', 'smart', 'ALFA ROMEO', 'ROLLS ROYCE', 'FERRARI',
+                                        'PORSCHE', 'LAND ROVER', 'B.M.W.', 'HONDA', 'NISSAN', 'BENTLEY', 'MAZDA',
+                                        'TOYOTA', 'LOTUS', 'FORD', 'MITSUBISHI', 'ROVER', 'SUBARU', 'JAGUAR',
+                                        'SUZUKI', 'MG-F', 'AUDI', 'CADILLAC', 'FIAT', 'MORGAN', 'TD CARS',
+                                        'ASTON MARTIN', 'HYUNDAI', 'VOLVO', 'DAIHATSU', 'HINO', 'JEEP', 'PROTON',
+                                        'ISUZU', 'KIA', 'MASERATI', 'SCANIA', 'CHEVROLET', 'HUMMER', 'LAMBORGHINI',
+                                        'PERODUA', 'RENAULT', 'SKODA', 'SSANGYONG', 'CITROEN', 'DODGE', 'MITSUOKA',
+                                        'OPEL', 'CHRYSLER', 'MAYBACH', 'PEUGEOT', 'SAAB', 'INFINITI', 'MCLAREN',
+                                        'JOYLONG', 'RUF', 'UD TRUCKS', 'YUTONG', 'ALPINA', 'CHERY', 'TESLA',
+                                        'DAEWOO', 'GOLDEN DRAGON', 'KING LONG', 'MAXUS', 'SMART', 'ALPINE',
+                                        'DAIMLER', 'PONTIAC', 'TRIUMPH'
+                                        ]
+                                    )
+        inputs['color'] = st.selectbox("Color", ["Beige", "Black", "Blue", "Brown", "Gold", "Green", "Grey", "Maroon", "Multicolor", "Orange", "Pink", "Purple", "Red", "Silver", "White", "Yellow"])
+        inputs['fuel_type'] = st.selectbox("Fuel Type", ["Diesel", "Electric", "Petrol", "Petrol-Electric"])
+        inputs['transmission'] = st.selectbox("Transmission", ["Auto", "Manual"])
+        inputs['vehicle_type'] = st.selectbox("Vehicle Type", ["Bus/Mini Bus", "Hatchback", "Luxury Sedan", "Mid-Sized Sedan", "MPV", "Others", "Sports Car", "Stationwagon", "SUV", "Truck", "Van"])
 
     with col2:
         inputs['registration_date'] = st.date_input("Registration Date", value=datetime(2018, 5, 10)).isoformat()
-        inputs['manufactured_year'] = st.number_input("Manufactured Year", min_value=1990, max_value=datetime.now().year, value=2018, step=1)
+        inputs['manufactured_year'] = st.number_input("Manufactured Year", min_value=1950, max_value=datetime.now().year, value=2018, step=1)
         inputs['coe_left'] = st.number_input("COE Left (months)", min_value=0, value=48, step=1)
         inputs['mileage'] = st.number_input("Mileage (km)", min_value=0, value=40000, step=1000)
         inputs['no_of_owners'] = st.number_input("Number of Owners", min_value=1, value=1, step=1)
+        inputs['posted_datetime'] = st.date_input("Posted Date", value=datetime(2025, 1, 10)).isoformat()
+
 
     st.markdown("### Technical & Financial Info")
     col3, col4 = st.columns(2)

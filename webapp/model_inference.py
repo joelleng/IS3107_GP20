@@ -168,27 +168,16 @@ def build_full_input(ui: dict) -> dict:
     Merge UI inputs with default/fake values for fields not collected in the Streamlit form.
     """
     now = datetime.now().isoformat()
-    current_year = datetime.now().year
+    # Defaults if it is not provided by streamlit ui
     defaults = {
-        'used_car_id': 0,
-        'listing_url': '',
-        'car_model': 'Generic Model',
-        'color': 'Unknown',
-        'fuel_type': 'Petrol',
-        'price': 0.0,
-        'depreciation_per_year': 0.0,
-        'registration_date': now,
+        'used_car_id': 0, # will be dropped
+        'listing_url': '', # will be dropped
+        'active': True, # will be dropped
         'scraped_datetime': now,
         'posted_datetime': now,
         'updated_datetime': now,
-        'manufactured_year': current_year - ui.get('car_age', 0),
-        'road_tax_per_year': 0.0,
-        'transmission': 'Automatic',
-        'dereg_value': 0.0,
-        'omv': 0.0,
-        'coe_value': 0.0,
-        'arf': 0.0,
-        'curb_weight': 0.0,
-        'active': True
     }
-    return {**defaults, **ui}
+
+    merged = {**defaults, **ui}
+    print("Final merged input:", merged)
+    return merged
