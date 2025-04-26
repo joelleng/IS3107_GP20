@@ -14,7 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from utils.vehicle_details_helper import (
-    string_extraction, get_car_model, get_car_brand, get_car_color,
+    get_car_model, get_car_model_html, get_car_brand, get_car_color,
     get_fuel_type, get_price, get_price_html, get_depreciation,
     get_depreciation_soup, get_reg_date, get_mileage, get_mileage_html,
     get_manufactured_year, get_manufactured_year_soup, helper_coe_clean,
@@ -25,6 +25,16 @@ from utils.vehicle_details_helper import (
     get_curb_weight, get_curb_weight_soup, get_number_of_owners,
     get_number_of_owners_soup, get_type_of_vehicle, get_type_of_vehicle_html,
     get_posted_date, get_last_updated_date, safe_extract)
+from utils import google_cloud
+from google.cloud import bigquery
+
+# ----------------------------- Google Cloud -----------------------------
+GCP_PROJECT_ID = 'is3107-453814'
+BQ_DATASET_ID = 'car_dataset'
+BQ_TABLE_ID = 'used_car'
+BUCKET_NAME = 'is3107-bucket'
+
+# ----------------------------- DAG -----------------------------
 
 # Default Args for DAG
 default_args = {
@@ -68,13 +78,16 @@ def sgcarmart_dag():
 
         try:
             main_page_listing_list = [] # creating list to store search pages of 100 car listings
-            for i in (range(1)):
+            for i in (range(30)):
                 url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=" + str(i * 100) + "&RPG=100"
+                # url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=100&RPG=100"
+                # url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=" + str(i * 10) + "&RPG=5"
                 main_page_listing_list.append(url)
             print(f"Listing list: {main_page_listing_list}")
             # Set up Selenium WebDriver
             options = webdriver.ChromeOptions()
             options.add_argument("--headless")  # Run in headless mode for faster execution
+            options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
 
@@ -87,6 +100,8 @@ def sgcarmart_dag():
                 time.sleep(5)  # Wait for JavaScript to load
 
                 soup = BeautifulSoup(driver.page_source, 'lxml')
+
+                time.sleep(5)
 
                 links = soup.find_all('a', class_='styles_text_link__wBaHL') # Obtaining all vehicle links in the page
                 posted_date_div = soup.find_all("div", class_="styles_posted_date__ObxTu") # Obtain the posted date of the vehicle listing
@@ -119,14 +134,28 @@ def sgcarmart_dag():
             Returns:
                 - filtered_listings : dict
         """
-        cutoff_date = datetime.strptime("2025-03-01", "%Y-%m-%d") # Replace with database query for latest date available
+        client = bigquery.Client()
+        table_id = f"{GCP_PROJECT_ID}.{BQ_DATASET_ID}.{BQ_TABLE_ID}"
+
+        query = f"SELECT MAX(posted_datetime) AS latest_posted_date FROM `{table_id}`"
+        query_job = client.query(query)
+        result = query_job.result()
+        latest_posted_date = next(result, None) 
+
+        if latest_posted_date and latest_posted_date.latest_posted_date:
+            cutoff_date = latest_posted_date.latest_posted_date
+            print(f'Latest posted date from BigQuery: {cutoff_date}')
+        else:
+            cutoff_date = datetime(2000, 1, 1).date() # Default to a very old date if no data is found
+        # cutoff_date = datetime.strptime("2025-03-01", "%Y-%m-%d") # Replace with database query for latest date available
         filtered_listings = {}
 
         for base_url, listings in base_url_dict.items():
+            print(base_url)
             filtered_listings[base_url] = []
 
             for vehicle_link, posted_date in listings.items():
-                posted_date = datetime.strptime(posted_date, "%d-%b-%Y")
+                posted_date = datetime.strptime(posted_date, "%d-%b-%Y").date() 
                 if posted_date > cutoff_date:
                     filtered_listings[base_url].append(vehicle_link)
 
@@ -145,15 +174,18 @@ def sgcarmart_dag():
             os.makedirs(output_dir, exist_ok=True)
 
             file = os.path.join(output_dir, f"vehicle_details_{brsr}_{timestamp}.csv")
-            df = pd.DataFrame(columns=['listing_url', 'car_model','brand', 'color', 'fuel_type', 'price',
+            
+            df = pd.DataFrame(columns=['used_car_id', 'listing_url', 'car_model','brand', 'color', 'fuel_type', 'price',
                            'depreciation_per_year', 'registration_date', 'coe_left', 'mileage', 'manufactured_year',
                            'road_tax_per_year', 'transmission', 'dereg_value', 'omv', 'coe_value', 'arf',
-                            'engine_capacity_cc', 'power', 'curb_weight', 'no_of_owners', 'vehicle_type', 'date_posted', 'last_updated'])
+                            'engine_capacity_cc', 'power', 'curb_weight', 'no_of_owners', 'vehicle_type', 
+                            'scraped_datetime', 'posted_datetime', 'updated_datetime', 'active'])
             i = 0 
 
             for listingurl in vehicle_links:
-                print(listingurl)
                 # listingurl='https://www.sgcarmart.com/used_cars/info.php?ID=1366938&DL=4573&GASRC=dy'
+                car_id = listingurl.split("ID=")[1].split("&")[0]
+
                 response = requests.get(listingurl)
                 listing_url = BeautifulSoup(response.text, 'lxml')
                 soup = BeautifulSoup(response.text, "html.parser")
@@ -161,16 +193,28 @@ def sgcarmart_dag():
                 script_tag = soup.find("script", string=re.compile(r'@context'))
                 json_data = np.nan
 
+                # If script_tag with @context is found, parse its content
                 if script_tag:
                     try:
                         json_text = script_tag.string.strip()
                         json_data = json.loads(json_text)
                     except json.JSONDecodeError:
-                        pass
+                        pass 
+
+                # If no @context script tag is found, check for window._loopaData as fallback
+                if json_data is np.nan:
+                    script_tag = soup.find("script", text=lambda t: t and 'window._loopaData' in t)
+                    if script_tag:
+                        try:
+                            # Extract the JSON from the window._loopaData assignment
+                            json_text = script_tag.string.split('window._loopaData = ')[1].split(';')[0]
+                            json_data = json.loads(json_text)
+                        except json.JSONDecodeError:
+                            pass
 
                 # Extract details using JSON if available; otherwise, fallback to HTML parsing
-                car_model = safe_extract(get_car_model, json_data)
-                brand_name = safe_extract(get_car_brand, json_data)
+                car_model = safe_extract(get_car_model, json_data) or safe_extract(get_car_model_html, listing_url)
+                brand_name = safe_extract(get_car_brand, json_data) or json_data.get('make')
                 color = safe_extract(get_car_color, json_data)
                 fuel_type = safe_extract(get_fuel_type, json_data)
                 price = safe_extract(get_price, json_data) or safe_extract(get_price_html, listing_url)
@@ -193,6 +237,8 @@ def sgcarmart_dag():
                 date_posted = safe_extract(get_posted_date, soup)
                 last_updated = safe_extract(get_last_updated_date, soup)
 
+                print(f"Used Car ID: {car_id}")
+                print(f'Listing URL: {listingurl}')
                 print(f"Car Model: {car_model}")
                 print(f"Brand: {brand_name}")
                 print(f"Color: {color}")
@@ -217,34 +263,38 @@ def sgcarmart_dag():
                 print(f"Date Posted: {date_posted}")
                 print(f"Last Updated: {last_updated}")
 
-                df.loc[i, 'listing_url'] = listingurl
-                df.loc[i, 'car_model'] = car_model
-                df.loc[i, 'brand'] = brand_name
-                df.loc[i, 'color'] = color
-                df.loc[i, 'fuel_type'] = fuel_type
-                df.loc[i, 'price'] = price
-                df.loc[i, 'depreciation_per_year'] = depreciation
-                df.loc[i, 'registration_date'] = reg_date
-                df.loc[i, 'coe_left'] = coe_remaining
-                df.loc[i, 'mileage'] = mileage
-                df.loc[i, 'manufactured_year'] = manu_year
-                df.loc[i, 'road_tax_per_year'] = road_tax
-                df.loc[i, 'transmission'] = transmission
-                df.loc[i, 'dereg_value'] = dereg_value
-                df.loc[i, 'omv'] = omv
-                df.loc[i, 'coe_value'] = coe_value
-                df.loc[i, 'arf'] = arf
-                df.loc[i, 'engine_capacity_cc'] = engine_capacity
-                df.loc[i, 'power'] = power
-                df.loc[i, 'curb_weight'] = curb_weight
-                df.loc[i, 'no_of_owners'] = no_of_owners
-                df.loc[i, 'vehicle_type'] = vehicle_type
-                df.loc[i, 'date_posted'] = date_posted
-                df.loc[i, 'last_updated'] = last_updated
+                df.loc[i, 'used_car_id'] = car_id # INTEGER
+                df.loc[i, 'listing_url'] = listingurl # STRING
+                df.loc[i, 'car_model'] = car_model # STRING
+                df.loc[i, 'brand'] = brand_name # STRING
+                df.loc[i, 'color'] = color # STRING
+                df.loc[i, 'fuel_type'] = fuel_type # STRING
+                df.loc[i, 'price'] = price # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'depreciation_per_year'] = depreciation # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'registration_date'] = datetime.strptime(reg_date, "%d-%b-%Y").date() # DATE
+                df.loc[i, 'coe_left'] = coe_remaining # INTEGER
+                df.loc[i, 'mileage'] = mileage # INTEGER
+                df.loc[i, 'manufactured_year'] = manu_year # INTEGER
+                df.loc[i, 'road_tax_per_year'] = road_tax # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'transmission'] = transmission # STRING
+                df.loc[i, 'dereg_value'] = dereg_value # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'omv'] = omv # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'coe_value'] = coe_value # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'arf'] = arf # FLOAT / DECIMAL in SQL => NUMERIC in BigQuery
+                df.loc[i, 'engine_capacity_cc'] = engine_capacity # INTEGER
+                df.loc[i, 'power'] = power # INTEGER
+                df.loc[i, 'curb_weight'] = curb_weight # INTEGER
+                df.loc[i, 'no_of_owners'] = no_of_owners # INTEGER
+                df.loc[i, 'vehicle_type'] = vehicle_type # STRING
+                df.loc[i, 'scraped_datetime'] = datetime.now() # DATETIME
+                df.loc[i, 'posted_datetime'] = datetime.strptime(date_posted, "%d-%b-%Y").date() # DATE
+                df.loc[i, 'updated_datetime'] = datetime.strptime(last_updated, "%d-%b-%Y").date() # DATE
+                df.loc[i, 'active'] = True
 
-                df.to_csv(file, index=False)
                 i += 1 # Allows next car listing to be put into a next row in the dataframe
                 time.sleep(2)  # Prevents us from getting locked out of the website
+
+            df.to_csv(file, index=False)
 
             return {f"{base_url}_CSV_FILEPATH": file}
         except Exception as e:
@@ -263,10 +313,49 @@ def sgcarmart_dag():
             for file_path_dict in file_path_dicts:
                 for key, file_path in file_path_dict.items():
                     print(f"Ingesting file: {file_path} from {key}")
-                # Ingestion code here
+
+                    # Read the CSV file
+                    df = pd.read_csv(file_path)
+
+                    # Convert only in this task because we re-read the CSV file
+                    # Convert the following columns to INTEGER type for BigQuery
+                    columns_to_convert = ['used_car_id', 'coe_left', 'mileage', 
+                                          'manufactured_year', 'engine_capacity_cc', 
+                                          'power', 'curb_weight', 'no_of_owners']
+                    for col in columns_to_convert:
+                        df[col] = np.floor(pd.to_numeric(df[col], errors='coerce')).astype("Int64")
+
+
+                    # Convert the following columns to FLOAT type for BigQuery
+                    df['price'] = df['price'].astype("float")
+                    df['depreciation_per_year'] = df['depreciation_per_year'].astype("float")
+                    df['road_tax_per_year'] = df['road_tax_per_year'].astype("float")
+                    df['dereg_value'] = df['dereg_value'].astype("float")
+                    df['omv'] = df['omv'].astype("float")
+                    df['coe_value'] = df['coe_value'].astype("float")
+                    df['arf'] = df['arf'].astype("float")
+
+                    # Convert the following columns to DATE type for BigQuery
+                    df['registration_date'] = pd.to_datetime(df['registration_date'], format="%Y-%m-%d").dt.date
+                    df['posted_datetime'] = pd.to_datetime(df['posted_datetime'], format="%Y-%m-%d").dt.date
+                    df['updated_datetime'] = pd.to_datetime(df['updated_datetime'], format="%Y-%m-%d").dt.date
+                    df['scraped_datetime'] = pd.to_datetime(df['scraped_datetime'], format="%Y-%m-%d %H:%M:%S.%f")
+
+                    # Check the type of each column
+                    print(df.dtypes)
+                    # Check the type of each cell in the first row
+                    print(df.iloc[0].apply(type))
+
+                    """Uploads DataFrame to GCS via google_cloud.py"""
+                    df_gcs_uri = google_cloud.upload_to_gcs(df, bucket_name=BUCKET_NAME, prefix=BQ_TABLE_ID)
+
+                    """Loads GCS data into BigQuery via google_cloud.py"""
+                    google_cloud.load_to_bigquery(df_gcs_uri, GCP_PROJECT_ID, BQ_DATASET_ID, BQ_TABLE_ID)
+                    
             return True
         except Exception as e:
             raise RuntimeError(f"Error: {str(e)}")
+
 
     # DAG Node order
     base_url_dict = get_sgcarmart_data()
