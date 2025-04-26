@@ -6,7 +6,8 @@ from datetime import datetime
 
 PROJECT_ID = "is3107-453814"
 REGION = "us-central1"
-TEMPLATE_PATH = "gs://is3107-car-data/pipeline-artifacts/retrain_pipeline.json"
+# TEMPLATE_PATH = "gs://is3107-car-data/pipeline-artifacts/retrain_pipeline.json"
+TEMPLATE_PATH = "gs://is3107-bucket/mlops/retrain_pipeline.json"
 
 with models.DAG(
     dag_id="trigger_vertex_pipeline_dag",

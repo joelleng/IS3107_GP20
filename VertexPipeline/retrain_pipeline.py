@@ -10,6 +10,10 @@ from evaluate_model import evaluate_model_direct
 # UTF-8 to avoid issues
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
+# GCP
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '../Airflow/keys/sa.json'
+
+
 # Vertex AI init
 aiplatform.init(
     project="is3107-453814",
@@ -18,7 +22,7 @@ aiplatform.init(
 
 @pipeline(
     name="car_price_retrain",
-    pipeline_root="gs://is3107-car-data/pipeline-artifacts"
+    pipeline_root="gs://is3107-bucket/mlops/pipeline-artifacts"
 )
 def retrain_pipeline():
     # 1. Data processing
@@ -41,7 +45,7 @@ if __name__ == "__main__":
     job = aiplatform.PipelineJob(
         display_name="car_price_pipeline",
         template_path="retrain_pipeline.json",
-        pipeline_root="gs://is3107-bucket/mlops"
+        pipeline_root="gs://is3107-bucket/mlops/pipeline-artifacts"
     )
 
     job.run(
