@@ -179,3 +179,13 @@ cython_debug/
 .DS_Store
 **/.DS_Store
 **/gcp-key.json
+**/sa.json
+
+
+# Ignore downloaded GCloud SDK
+VertexPipeline/google-cloud-sdk/
+VertexPipeline/google-cloud-sdk-*.tar.gz
+
+# Ignore contents of keys/, but keep the folder itself
+Airflow/keys/*
+!Airflow/keys/.gitkeep

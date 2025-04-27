@@ -102,8 +102,28 @@ trio==0.29.0
 trio-websocket==0.12.2
 typing_extensions==4.12.2
 tzdata==2025.1
-urllib3==2.3.0
+urllib3==1.26.20 # downgraded from 2.3.0
 wcwidth==0.2.13
 webdriver-manager==4.0.2
 websocket-client==1.8.0
 wsproto==1.2.0
+
+google-cloud-bigquery==3.31.0
+google-cloud-storage==2.8.0  # downgraded from 3.1.0
+google-cloud-bigquery-storage==2.30.0
+matplotlib==3.10.1
+pymysql==1.1.1
+mysql-connector-python==9.2.0
+absl-py==2.2.0
+db-dtypes==1.4.2
+google-cloud-aiplatform==1.90.0
+kfp==2.12.1 # lower version for compatibility
+xgboost
+streamlit==1.44.1
+plotly==6.0.1
+
+scikit-learn==1.6.1
+sentence-transformers==4.1.0
+joblib==1.4.2
+pandas-gbq==0.28.0
+scipy==1.15.2
