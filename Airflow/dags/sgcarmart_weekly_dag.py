@@ -4,7 +4,7 @@
 from airflow.decorators import dag, task
 from airflow.utils.dates import days_ago
 from bs4 import BeautifulSoup
-import requests, re, json, os
+import requests, re, json, os, random
 import pandas as pd
 import numpy as np
 import time
@@ -78,7 +78,7 @@ def sgcarmart_dag():
 
         try:
             main_page_listing_list = [] # creating list to store search pages of 100 car listings
-            for i in (range(30)):
+            for i in (range(10)):
                 url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=" + str(i * 100) + "&RPG=100"
                 # url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=100&RPG=100"
                 # url = "https://www.sgcarmart.com/used_cars/listing.php?BRSR=" + str(i * 10) + "&RPG=5"
@@ -100,8 +100,6 @@ def sgcarmart_dag():
                 time.sleep(5)  # Wait for JavaScript to load
 
                 soup = BeautifulSoup(driver.page_source, 'lxml')
-
-                time.sleep(5)
 
                 links = soup.find_all('a', class_='styles_text_link__wBaHL') # Obtaining all vehicle links in the page
                 posted_date_div = soup.find_all("div", class_="styles_posted_date__ObxTu") # Obtain the posted date of the vehicle listing
@@ -292,7 +290,7 @@ def sgcarmart_dag():
                 df.loc[i, 'active'] = True
 
                 i += 1 # Allows next car listing to be put into a next row in the dataframe
-                time.sleep(2)  # Prevents us from getting locked out of the website
+                time.sleep(random.randint(0, 3))   # Prevents us from getting locked out of the website
 
             df.to_csv(file, index=False)
 
